@@ -1,0 +1,40 @@
+SELECT
+  DateTime, GeoType, ST_GeogPoint(Lon,
+    Lat) AS the_geom,
+  ARRAY_TO_STRING(ARRAY_AGG(Art
+    ORDER BY
+      cnt DESC
+    LIMIT
+      5), '<BR><BR>') Articles,
+  MAX(SharingImage) SharingImage,
+  APPROX_TOP_COUNT(Loc, 1)[
+OFFSET
+  (0)].value LocationName,
+  COUNT(1) NumMentions,
+  FROM (
+  SELECT
+    DateTime,GeoType, CONCAT('<a href="', MIN(URL), '" target="blank">',MAX(Title),'</a>') Art,
+    Lat,
+    Lon,
+    MAX(SharingImage) SharingImage,
+    APPROX_TOP_COUNT(Location, 1)[
+  OFFSET
+    (0)].value Loc,
+    COUNT(1) cnt
+  FROM
+    `gdelt-bq.gdeltv2.ggg`
+  WHERE
+    (ContextualText LIKE '%covid%'
+      AND ContextualText LIKE '%coronavirus%')
+    AND GeoType>=1
+    AND DATE(DateTime) >= "2020-02-11"
+    AND DATE(DateTime) <= "2021-04-30"
+  GROUP BY
+    LOWER(Title),GeoType,
+    Lat,
+    Lon,DateTime )
+GROUP BY DateTime, GeoType,
+  Lat,
+  Lon
+ORDER BY
+  NumMentions DESC
